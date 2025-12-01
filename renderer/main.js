@@ -232,7 +232,7 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
 
   const MODE = { target: 20, t1: 25, t2: 35, t3: 50 };
   const TEMP_FIXED_C = 41.0;
-  const AUTO_PORT = 'COM20';
+  const AUTO_PORT = '/dev/ttyS1';
   const AUTO_BAUD = 115200;
 
   // 阶段文案：r 上升阶段，h 保持阶段，p 脉冲阶段
