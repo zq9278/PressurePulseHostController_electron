@@ -38,6 +38,7 @@ const U8_LEFT_HEATER_PRESENT = 0x1107;
 const U8_RIGHT_HEATER_PRESENT = 0x1108;
 const U8_LEFT_HEATER_FUSE = 0x1109;
 const U8_RIGHT_HEATER_FUSE = 0x110A;
+const U8_MODE_CURVES = 0x110B;
 
 function crc16_modbus(buf) {
   let crc = 0xFFFF;
@@ -126,6 +127,7 @@ module.exports = {
   U8_RIGHT_HEATER_PRESENT,
   U8_LEFT_HEATER_FUSE,
   U8_RIGHT_HEATER_FUSE,
+  U8_MODE_CURVES,
   // functions
   crc16_modbus,
   buildFrame,

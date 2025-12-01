@@ -81,6 +81,13 @@
                     <div class="panel-title">压力 / 温度</div>
                   </div>
                   <div class="live-chip">实时刷新</div>
+                  <div class="live-chip stage-chip stage-idle" id="modeStageChip">
+                    <span class="stage-eyebrow">当前阶段</span>
+                    <div class="stage-main">
+                      <span class="stage-orb"></span>
+                      <span class="stage-label">待机</span>
+                    </div>
+                  </div>
                 </div>
                 <div class="circle-readings">
                   <div class="reading-circle" data-side="left">
@@ -131,14 +138,14 @@
                   <div class="curve-card pressure">
                     <div class="curve-head">
                       <div>左眼压力</div>
-                      <div id="pressureLeftLabel">0.0 kPa</div>
+                      <div id="pressureLeftLabel">0.0 mmHg</div>
                     </div>
                     <canvas id="sparkPressureLeft" width="1024" height="260"></canvas>
                   </div>
                   <div class="curve-card pressure">
                     <div class="curve-head">
                       <div>右眼压力</div>
-                      <div id="pressureRightLabel">0.0 kPa</div>
+                      <div id="pressureRightLabel">0.0 mmHg</div>
                     </div>
                     <canvas id="sparkPressureRight" width="1024" height="260"></canvas>
                   </div>
@@ -204,13 +211,11 @@
                       </div>
                       <div class="slider-value" id="pressMmHgValue">250 mmHg</div>
                     </div>
-                    <input type="range" id="pressMmHg" min="150" max="550" step="100" value="250" />
+                    <input type="range" id="pressMmHg" min="150" max="350" step="100" value="250" />
                     <div class="slider-scale">
                       <span>150</span>
                       <span>250</span>
                       <span>350</span>
-                      <span>450</span>
-                      <span>550</span>
                     </div>
                   </div>
                   <div class="slider-card" data-kind="duration">
@@ -268,6 +273,121 @@
         </div>
       </section>
 
+      <section id="settingsScreen" class="screen settings-screen">
+        <div class="settings-container">
+          <header class="top-bar">
+            <button id="btnBackSettings" class="icon-back" aria-label="返回主页"><span>←</span></button>
+            <div class="section-title">系统设置</div>
+            <div class="top-placeholder"></div>
+          </header>
+
+          <div class="settings-layout">
+            <aside class="settings-sidebar">
+              <div class="sidebar-title">偏好选项</div>
+              <div class="settings-nav">
+                <button type="button">显示 <span class="hint">亮度 / 屏保</span></button>
+                <button type="button">声音 <span class="hint">音量 / 提示</span></button>
+                <button type="button">语言 <span class="hint">中文 / English</span></button>
+                <button type="button">关于 <span class="hint">版本 / 日志</span></button>
+              </div>
+            </aside>
+
+            <div class="settings-main">
+              <div class="settings-card headered">
+                <h3>显示</h3>
+                <p>模仿 macOS 样式的柔和背光与模糊效果。</p>
+                <div class="setting-row">
+                  <div class="meta">
+                    <strong>屏幕亮度</strong>
+                    <span>调整 UI 辉度</span>
+                  </div>
+                  <div class="pill"><span>当前</span><strong id="settingsBrightnessValue">80%</strong></div>
+                </div>
+                <input type="range" class="mac-slider" id="settingsBrightness" min="10" max="100" step="1" />
+                <div class="setting-row">
+                  <div class="meta">
+                    <strong>屏保等待</strong>
+                    <span>自动进入屏保的倒计时</span>
+                  </div>
+                  <div class="pill"><span>倒计时</span><strong id="screensaverValue">10 min</strong></div>
+                </div>
+                <select id="screensaverSelect">
+                  <option value="5">5 分钟</option>
+                  <option value="10">10 分钟</option>
+                  <option value="15">15 分钟</option>
+                  <option value="30">30 分钟</option>
+                  <option value="60">60 分钟</option>
+                </select>
+              </div>
+
+              <div class="settings-stack">
+                <div class="settings-card">
+                  <h3>声音</h3>
+                  <div class="setting-row">
+                    <div class="meta">
+                      <strong>系统音量</strong>
+                      <span>播放提示与反馈</span>
+                    </div>
+                    <div class="pill"><span>当前</span><strong id="settingsVolumeValue">60%</strong></div>
+                  </div>
+                  <input type="range" class="mac-slider" id="settingsVolume" min="0" max="100" step="1" />
+                  <div class="setting-row">
+                    <div class="meta">
+                      <strong>提示音</strong>
+                      <span>重要操作播放提示</span>
+                    </div>
+                    <label class="toggle">
+                      <input type="checkbox" id="chimeToggle" />
+                      <span class="toggle-track"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-card">
+                  <h3>语言</h3>
+                  <p>中英文切换，实时调整界面文案。</p>
+                  <div class="setting-row">
+                    <div class="meta">
+                      <strong>界面语言</strong>
+                      <span>偏好选择</span>
+                    </div>
+                    <div class="pill"><span>当前</span><strong id="languageValue">中文</strong></div>
+                  </div>
+                  <div class="radio-pill">
+                    <label>
+                      <input type="radio" name="lang" id="languageZh" value="zh" checked />
+                      <span>中文</span>
+                    </label>
+                    <label>
+                      <input type="radio" name="lang" id="languageEn" value="en" />
+                      <span>English</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="settings-card">
+                  <h3>关于 / 日志</h3>
+                  <div class="settings-meta">
+                    <div class="meta-tile">
+                      <div class="label">程序版本</div>
+                      <div class="value" id="settingsAppVersion">0.1.0</div>
+                    </div>
+                    <div class="meta-tile">
+                      <div class="label">固件版本</div>
+                      <div class="value" id="settingsFirmwareVersion">--</div>
+                    </div>
+                  </div>
+                  <div class="settings-actions">
+                    <button id="btnCheckUpdates" class="ghost-btn">检查更新</button>
+                    <button id="btnOpenLogs" class="ghost-btn">打开日志</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
     </div>
 
@@ -278,6 +398,14 @@
         <div class="modal-title">眼盾未就绪</div>
         <p id="shieldModalText">请确认左右眼盾均已插入并保持良好接触。</p>
         <button id="modalClose" class="action start">知道了</button>
+      </div>
+    </div>
+
+    <div id="shieldLostModal" class="modal" hidden>
+      <div class="modal-body">
+        <div class="modal-title">??????????</div>
+        <p>???????????????????????????????????</p>
+        <button id="shieldLostBack" class="action start">????</button>
       </div>
     </div>
 

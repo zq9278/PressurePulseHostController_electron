@@ -240,41 +240,71 @@ class SerialManager extends EventEmitter {
       dbg('RX frame', describeFrame(buf.slice(0, totalLen)));
 
       // Dispatch known feedback frames
+      let handled = false;
       try {
         if (frameId === proto.F32_LEFT_PRESSURE_VALUE && dataType === proto.DATA_FLOAT && dataLen >= 4) {
-          const valKpa = payload.readFloatLE(0);
-          this.emit('serial-data', 0, Number(valKpa * 1000.0)); // Pa for plot
+          const valMmHg = payload.readFloatLE(0);
+          this.emit('serial-data', 0, Number(valMmHg));
+          handled = true;
         } else if (frameId === proto.F32_RIGHT_PRESSURE_VALUE && dataType === proto.DATA_FLOAT && dataLen >= 4) {
-          const valKpa = payload.readFloatLE(0);
-          this.emit('serial-data', 2, Number(valKpa * 1000.0));
+          const valMmHg = payload.readFloatLE(0);
+          this.emit('serial-data', 2, Number(valMmHg));
+          handled = true;
         } else if (frameId === proto.F32_LEFT_TEMP_VALUE && dataType === proto.DATA_FLOAT && dataLen >= 4) {
           const valC = payload.readFloatLE(0);
           this.emit('serial-data', 1, Number(valC));
+          handled = true;
         } else if (frameId === proto.F32_RIGHT_TEMP_VALUE && dataType === proto.DATA_FLOAT && dataLen >= 4) {
           const valC = payload.readFloatLE(0);
           this.emit('serial-data', 3, Number(valC));
+          handled = true;
         } else if (frameId === proto.U8_HEARTBEAT_ACK && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
           this.emit('heartbeat-ack', payload[0]);
+          handled = true;
         } else if (frameId === proto.U8_SYSTEM_STATE && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
           this.emit('system-state', payload[0]);
+          handled = true;
         } else if (frameId === proto.U8_ALARM_STATE && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
           this.emit('alarm-state', payload[0]);
+          handled = true;
         } else if (frameId === proto.U8_STOP_TREATMENT && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
           this.emit('stop-treatment', payload[0]);
-        } else if (frameId === proto.U8_LEFT_HEATER_PRESENT && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
-          this._shield.leftPresent = !!payload[0];
+          handled = true;
+        } else if (frameId === proto.U8_LEFT_HEATER_PRESENT && dataType === proto.DATA_UINT8_T && dataLen >= 0) {
+          const val = payload.length ? payload[0] : 0;
+          //console.log('[shield] left present frame payload=', val);
+          this._shield.leftPresent = !!val;
           this._emitShieldState();
-        } else if (frameId === proto.U8_RIGHT_HEATER_PRESENT && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
-          this._shield.rightPresent = !!payload[0];
+          handled = true;
+        } else if (frameId === proto.U8_RIGHT_HEATER_PRESENT && dataType === proto.DATA_UINT8_T && dataLen >= 0) {
+          const val = payload.length ? payload[0] : 0;
+          //console.log('[shield] right present frame payload=', val);
+          this._shield.rightPresent = !!val;
           this._emitShieldState();
-        } else if (frameId === proto.U8_LEFT_HEATER_FUSE && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
-          this._shield.leftFuse = !!payload[0];
+          handled = true;
+        } else if (frameId === proto.U8_LEFT_HEATER_FUSE && dataType === proto.DATA_UINT8_T && dataLen >= 0) {
+          // Hardware: low level (0) means fuse blown
+          const val = payload.length ? payload[0] : 0;
+          //console.log('[shield] left fuse frame payload=', val);
+          this._shield.leftFuse = val;
           this._emitShieldState();
-        } else if (frameId === proto.U8_RIGHT_HEATER_FUSE && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
-          this._shield.rightFuse = !!payload[0];
+          handled = true;
+        } else if (frameId === proto.U8_RIGHT_HEATER_FUSE && dataType === proto.DATA_UINT8_T && dataLen >= 0) {
+          // Hardware: low level (0) means fuse blown
+          const val = payload.length ? payload[0] : 0;
+          //console.log('[shield] right fuse frame payload=', val);
+          this._shield.rightFuse = val;
           this._emitShieldState();
+          handled = true;
+        } else if (frameId === proto.U8_MODE_CURVES && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
+          const stage = String.fromCharCode(payload[0] || 0);
+          this.emit('mode-curves', stage);
+          handled = true;
         }
       } catch {}
+      if (!handled) {
+        //console.log('[serial] unhandled frame', describeFrame(buf.slice(0, totalLen)));
+      }
 
       // consume this frame
       buf = buf.slice(totalLen);
@@ -282,19 +312,20 @@ class SerialManager extends EventEmitter {
     this._buffer = buf;
   }
   _emitShieldState() {
-    const left = this._shield.leftPresent && !this._shield.leftFuse;
-    const right = this._shield.rightPresent && !this._shield.rightFuse;
+    const leftFuseBlown = this._shield.leftFuse === 0;
+    const rightFuseBlown = this._shield.rightFuse === 0;
+    const left = this._shield.leftPresent && !leftFuseBlown;
+    const right = this._shield.rightPresent && !rightFuseBlown;
     this.emit('shield-state', {
       left,
       right,
       leftPresent: !!this._shield.leftPresent,
       rightPresent: !!this._shield.rightPresent,
-      leftFuse: !!this._shield.leftFuse,
-      rightFuse: !!this._shield.rightFuse,
+      leftFuse: this._shield.leftFuse,
+      rightFuse: this._shield.rightFuse,
     });
   }
 
 }
 
 module.exports = { SerialManager };
-

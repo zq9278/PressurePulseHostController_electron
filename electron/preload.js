@@ -18,4 +18,5 @@ contextBridge.exposeInMainWorld('api', {
   onAlarmState: (cb) => ipcRenderer.on('alarm-state', (_, value) => cb(value)),
   onStopTreatment: (cb) => ipcRenderer.on('stop-treatment', (_, value) => cb(value)),
   onShieldState: (cb) => ipcRenderer.on('shield-state', (_, value) => cb(value)),
+  onModeCurves: (cb) => ipcRenderer.on('mode-curves', (_, value) => cb(value)),
 });

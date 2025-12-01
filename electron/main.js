@@ -55,6 +55,9 @@ function createWindow() {
   serial.on('shield-state', (value) => {
     mainWindow.webContents.send('shield-state', value);
   });
+  serial.on('mode-curves', (value) => {
+    mainWindow.webContents.send('mode-curves', value);
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
