@@ -1,0 +1,18 @@
+[Unit]
+Description=Root hardware control service (backlight, audio, etc.)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/local/bin/device-control.sh
+Restart=always
+RuntimeDirectory=device-control
+RuntimeDirectoryMode=0770
+Environment=DEVICE_CONTROL_HANDLER=/usr/local/bin/device-control-handler.sh
+Environment=DEVICE_CONTROL_SOCK=/run/device-control/device-control.sock
+Environment=DEVICE_CONTROL_GROUP=device-control
+
+[Install]
+WantedBy=multi-user.target

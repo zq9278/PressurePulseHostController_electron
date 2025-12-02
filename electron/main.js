@@ -4,6 +4,7 @@ process.env.XDG_SESSION_TYPE = "wayland";
 process.env.WAYLAND_DISPLAY = "wayland-0";
 // ① 必须先拿到 app 对象，再设置 GPU 开关
 const { app, BrowserWindow, ipcMain } = require('electron');
+const net = require('net');
 
 // ===== Wayland GPU 配置 =====
 app.commandLine.appendSwitch('ozone-platform', 'wayland');
@@ -24,6 +25,17 @@ const serial = new SerialManager();
 const BRIGHTNESS_PATH = '/sys/class/backlight/backlight2/brightness';
 const MAX_BRIGHTNESS_PATH = '/sys/class/backlight/backlight2/max_brightness';
 const DEFAULT_MAX_BRIGHTNESS = 255;
+const DEVICE_CONTROL_SOCKET =
+  process.env.DEVICE_CONTROL_SOCK || '/run/device-control/device-control.sock';
+const DEVICE_CONTROL_TIMEOUT = 1500;
+
+const clampPct = (value) => {
+  const num = Number.parseFloat(value);
+  if (!Number.isFinite(num)) return 0;
+  if (num < 0) return 0;
+  if (num > 100) return 100;
+  return Math.round(num);
+};
 
 async function readNumber(filePath) {
   const raw = await fs.promises.readFile(filePath, 'utf8');
@@ -41,7 +53,85 @@ async function resolveMaxBrightness() {
   }
 }
 
+function parseBrightnessPayload(payload) {
+  if (!payload) return null;
+  const parts = String(payload).trim().split(/\s+/);
+  if (parts[0] !== 'OK' || parts.length < 4) return null;
+  const raw = Number(parts[1]);
+  const max = Number(parts[2]);
+  const percent = clampPct(parts[3]);
+  if (!Number.isFinite(raw) || !Number.isFinite(max) || max <= 0) return null;
+  return { raw, max, percent };
+}
+
+function haveDeviceControl() {
+  try {
+    return fs.existsSync(DEVICE_CONTROL_SOCKET);
+  } catch {
+    return false;
+  }
+}
+
+function sendDeviceControl(cmd) {
+  return new Promise((resolve, reject) => {
+    if (!haveDeviceControl()) {
+      reject(new Error('device-control socket missing'));
+      return;
+    }
+    const client = net.createConnection(DEVICE_CONTROL_SOCKET);
+    let buf = '';
+    const cleanup = () => {
+      client.removeAllListeners();
+      try {
+        client.end();
+      } catch {}
+      try {
+        client.destroy();
+      } catch {}
+    };
+    const onError = (err) => {
+      cleanup();
+      reject(err);
+    };
+    client.setTimeout(DEVICE_CONTROL_TIMEOUT, () => onError(new Error('device-control timeout')));
+    client.on('data', (chunk) => {
+      buf += chunk.toString();
+    });
+    client.on('end', () => {
+      cleanup();
+      resolve(buf.trim());
+    });
+    client.on('error', onError);
+    client.on('connect', () => {
+      client.write(`${cmd}\n`);
+    });
+  });
+}
+
+async function tryGetBrightnessViaService() {
+  try {
+    const resp = await sendDeviceControl('brightness-get');
+    return parseBrightnessPayload(resp);
+  } catch (err) {
+    console.warn('[PPHC] brightness-get via service failed:', err.message);
+    return null;
+  }
+}
+
+async function trySetBrightnessViaService(percent) {
+  try {
+    const pct = clampPct(percent);
+    const resp = await sendDeviceControl(`brightness ${pct}`);
+    return parseBrightnessPayload(resp);
+  } catch (err) {
+    console.warn('[PPHC] brightness via service failed:', err.message);
+    return null;
+  }
+}
+
 async function getBrightnessPercent() {
+  const viaService = await tryGetBrightnessViaService();
+  if (viaService) return viaService;
   const max = await resolveMaxBrightness();
   const raw = await readNumber(BRIGHTNESS_PATH);
   const percent = Math.round((raw / max) * 100);
@@ -53,9 +143,10 @@ async function getBrightnessPercent() {
 }
 
 async function setBrightnessPercent(percent) {
+  const viaService = await trySetBrightnessViaService(percent);
+  if (viaService) return viaService;
   const max = await resolveMaxBrightness();
-  const pctRaw = Number(percent);
-  const pct = Number.isFinite(pctRaw) ? Math.max(0, Math.min(100, pctRaw)) : 0;
+  const pct = clampPct(percent);
   const raw = Math.round((pct / 100) * max);
   await fs.promises.writeFile(BRIGHTNESS_PATH, String(raw));
   return { raw, max, percent: pct };
