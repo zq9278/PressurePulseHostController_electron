@@ -64,20 +64,8 @@ function parseBrightnessPayload(payload) {
   return { raw, max, percent };
 }
 
-function haveDeviceControl() {
-  try {
-    return fs.existsSync(DEVICE_CONTROL_SOCKET);
-  } catch {
-    return false;
-  }
-}
-
 function sendDeviceControl(cmd) {
   return new Promise((resolve, reject) => {
-    if (!haveDeviceControl()) {
-      reject(new Error('device-control socket missing'));
-      return;
-    }
     const client = net.createConnection(DEVICE_CONTROL_SOCKET);
     let buf = '';
     const cleanup = () => {

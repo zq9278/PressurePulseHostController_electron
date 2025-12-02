@@ -28,6 +28,17 @@ install -m 755 tools/device-control-handler.sh /usr/local/bin/device-control-han
 install -m 644 tools/device-control.service /etc/systemd/system/device-control.service
 systemctl daemon-reload
 systemctl enable --now device-control.service
+
+
+sudo apt-get update && sudo apt-get install -y socat alsa-utils
+sudo groupadd -r device-control 2>/dev/null || true
+sudo usermod -aG device-control $USER   # log out/in afterward
+sudo install -m 755 tools/device-control.sh /usr/local/bin/device-control.sh
+sudo install -m 755 tools/device-control-handler.sh /usr/local/bin/device-control-handler.sh
+sudo install -m 644 tools/device-control.service /etc/systemd/system/device-control.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now device-control.service
+
 ```
 
 Socket will be created at `/run/device-control/device-control.sock` with mode `660` and owned by `root:device-control`. Add your desktop user to the `device-control` group (see above). Adjust `DEVICE_CONTROL_GROUP` or `DEVICE_CONTROL_MODE` if you prefer different ownership/permissions.
@@ -55,3 +66,9 @@ echo "volume 20" | socat - UNIX-CONNECT:/run/device-control/device-control.sock
 ```
 
 If you get `ERR`, check that the service is active, the socket permissions allow your user, and the backlight path matches your hardware (`ls /sys/class/backlight`).
+
+## Troubleshooting
+- Permission denied on socket: confirm your user is in `device-control` (`id` shows the group). If not, `sudo usermod -aG device-control <user>` then log out/in (or `newgrp device-control`) and `sudo systemctl restart device-control`. Socket/dir should be `drwxrwx--- root:device-control /run/device-control` and `srw-rw---- root:device-control /run/device-control/device-control.sock`.
+- Socket missing in app: ensure service is active (`systemctl status device-control`), and the socket path matches `DEVICE_CONTROL_SOCK` (default `/run/device-control/device-control.sock`).
+- Backlight path wrong: set `BACKLIGHT_DIR=/sys/class/backlight/<name>` in the unit env and restart service. Use `ls /sys/class/backlight` to pick the correct entry.
+- Temporary permissive test (not recommended long-term): `sudo chmod 666 /run/device-control/device-control.sock` then retry `socat`; revert to 660 once group access works.
