@@ -1,37 +1,41 @@
-const electronModule = require('electron');
-const { app, BrowserWindow, ipcMain } = electronModule || {};
+// ============ Electron 主进程 ============
+// 强制 Electron 使用 Wayland（Ozone）模式
+process.env.XDG_SESSION_TYPE = "wayland";
+process.env.WAYLAND_DISPLAY = "wayland-0";
+// ① 必须先拿到 app 对象，再设置 GPU 开关
+const { app, BrowserWindow, ipcMain } = require('electron');
 
-
-// ============ GPU 强制开启配置（必须写在最顶部）============
+// ===== Wayland GPU 配置 =====
+app.commandLine.appendSwitch('ozone-platform', 'wayland');
+app.commandLine.appendSwitch('enable-features', 'UseOzonePlatform');
 app.commandLine.appendSwitch('use-gl', 'egl');
-app.commandLine.appendSwitch('use-angle', 'gles');
-
-app.commandLine.appendSwitch('ignore-gpu-blacklist');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
-app.commandLine.appendSwitch('enable-native-gpu-memory-buffers');
-app.commandLine.appendSwitch('disable-software-rasterizer', 'false');
 
+// =======================================================
 const path = require('path');
 const { SerialManager } = require('./serial');
-
-
 
 let mainWindow;
 const serial = new SerialManager();
 
+
+// =============================================
+// 4) 创建窗口
+// =============================================
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 2560,
     height: 1600,
     minWidth: 2560,
-    maxWidth: 2560,
     minHeight: 1600,
+    maxWidth: 2560,
     maxHeight: 1600,
     resizable: false,
     fullscreenable: false,
-    frame: false, // no OS title bar / buttons
-    autoHideMenuBar: true, // hide "File Edit View" bar
+    frame: false,
+    autoHideMenuBar: true,
     backgroundColor: '#101114',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -40,14 +44,13 @@ function createWindow() {
     }
   });
 
-  // Load local renderer
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-  // When renderer has finished loading, push ports once
+
   mainWindow.webContents.once('did-finish-load', () => {
     broadcastPorts();
   });
 
-  // Forward serial events to renderer
+  // forward serial events
   serial.on('serial-data', (ch, value) => {
     mainWindow.webContents.send('serial-data', { ch, value });
   });
@@ -78,6 +81,9 @@ function createWindow() {
   });
 }
 
+// =============================================
+// 5) 列出 serial ports
+// =============================================
 async function broadcastPorts() {
   try {
     const ports = await serial.listPorts();
@@ -87,28 +93,37 @@ async function broadcastPorts() {
   } catch {}
 }
 
+// =============================================
+// 6) app.whenReady()
+// =============================================
 app.whenReady().then(() => {
   createWindow();
-  // Remove default app menu completely
+
   try {
     const { Menu } = require('electron');
     Menu.setApplicationMenu(null);
   } catch {}
-  // periodically broadcast port list to renderer
+
   broadcastPorts();
   setInterval(broadcastPorts, 3000);
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
+// =============================================
+// 7) 退出
+// =============================================
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-// IPC handlers (protocol unchanged)
+// =============================================
+// 8) IPC handlers
+// =============================================
 ipcMain.handle('list-ports', async () => serial.listPorts());
 ipcMain.handle('connect', async (e, { port, baud }) => serial.connect(port, baud));
 ipcMain.handle('disconnect', async () => serial.disconnect());
