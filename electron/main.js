@@ -1,15 +1,19 @@
 // ============ Electron 主进程 ============
 // 强制 Electron 使用 Wayland（Ozone）模式
-process.env.XDG_SESSION_TYPE = "wayland";
-process.env.WAYLAND_DISPLAY = "wayland-0";
 // ① 必须先拿到 app 对象，再设置 GPU 开关
 const { app, BrowserWindow, ipcMain } = require('electron');
 const net = require('net');
 
-// ===== Wayland GPU 配置 =====
-app.commandLine.appendSwitch('ozone-platform', 'wayland');
-app.commandLine.appendSwitch('enable-features', 'UseOzonePlatform');
-app.commandLine.appendSwitch('use-gl', 'egl');
+// ===== GPU / display ?? =====
+const useWayland =
+  process.env.ELECTRON_USE_WAYLAND === '1' || process.env.XDG_SESSION_TYPE === 'wayland';
+if (useWayland) {
+  app.commandLine.appendSwitch('ozone-platform', 'wayland');
+  app.commandLine.appendSwitch('enable-features', 'UseOzonePlatform');
+  app.commandLine.appendSwitch('use-gl', 'egl');
+} else {
+  app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
+}
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
