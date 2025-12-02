@@ -1,7 +1,21 @@
 const electronModule = require('electron');
 const { app, BrowserWindow, ipcMain } = electronModule || {};
+
+
+// ============ GPU 强制开启配置（必须写在最顶部）============
+app.commandLine.appendSwitch('use-gl', 'egl');
+app.commandLine.appendSwitch('use-angle', 'gles');
+
+app.commandLine.appendSwitch('ignore-gpu-blacklist');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('enable-native-gpu-memory-buffers');
+app.commandLine.appendSwitch('disable-software-rasterizer', 'false');
+
 const path = require('path');
 const { SerialManager } = require('./serial');
+
+
 
 let mainWindow;
 const serial = new SerialManager();
