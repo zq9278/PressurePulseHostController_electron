@@ -31,7 +31,7 @@ const MAX_BRIGHTNESS_PATH = '/sys/class/backlight/backlight2/max_brightness';
 const DEFAULT_MAX_BRIGHTNESS = 255;
 const DEVICE_CONTROL_SOCKET =
   process.env.DEVICE_CONTROL_SOCK || '/run/device-control/device-control.sock';
-const DEVICE_CONTROL_TIMEOUT = 1500;
+const DEVICE_CONTROL_TIMEOUT = Number(process.env.DEVICE_CONTROL_TIMEOUT || 400);
 
 const clampPct = (value) => {
   const num = Number.parseFloat(value);

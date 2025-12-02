@@ -286,6 +286,7 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
   };
 
   let brightnessApplyTimer = null;
+  let brightnessRequestInFlight = false;
   const clampBrightness = (val) => Math.max(0, Math.min(100, Math.round(Number(val) || 0)));
 
   function showView(view) {
@@ -620,7 +621,11 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     if (brightnessApplyTimer) clearTimeout(brightnessApplyTimer);
     brightnessApplyTimer = setTimeout(() => {
       brightnessApplyTimer = null;
-      applyBrightness(target);
+      if (brightnessRequestInFlight) return;
+      brightnessRequestInFlight = true;
+      applyBrightness(target).finally(() => {
+        brightnessRequestInFlight = false;
+      });
     }, 120);
   }
 
