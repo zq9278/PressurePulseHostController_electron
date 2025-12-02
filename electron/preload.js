@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('api', {
   sendU32: (frameId, value) => ipcRenderer.invoke('send-u32', { frameId, value }),
   sendText: (frameId, text) => ipcRenderer.invoke('send-text', { frameId, text }),
   exitApp: () => ipcRenderer.invoke('exit-app'),
+  getBrightness: () => ipcRenderer.invoke('get-brightness'),
+  setBrightness: (percent) => ipcRenderer.invoke('set-brightness', { percent }),
   onSerialData: (cb) => ipcRenderer.on('serial-data', (_, payload) => cb(payload)),
   onConnectionChanged: (cb) => ipcRenderer.on('connection-changed', (_, connected) => cb(connected)),
   onPorts: (cb) => ipcRenderer.on('ports', (_, ports) => cb(ports)),

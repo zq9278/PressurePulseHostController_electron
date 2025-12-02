@@ -74,6 +74,7 @@
       displayCardDesc: '模仿 macOS 样式的柔和背光与模糊效果。',
       brightnessLabel: '屏幕亮度',
       brightnessHint: '调整 UI 辉度',
+      brightnessApplyFailed: '设置亮度失败，请检查权限或背光设备',
       screensaverLabel: '屏保等待',
       screensaverHint: '自动进入屏保的倒计时',
       soundTitle: '声音',
@@ -179,6 +180,7 @@
       displayCardDesc: 'macOS-inspired soft lighting and glassy blur.',
       brightnessLabel: 'Brightness',
       brightnessHint: 'Adjust UI luminance',
+      brightnessApplyFailed: 'Failed to set brightness. Check permission or backlight device.',
       screensaverLabel: 'Screen Saver',
       screensaverHint: 'Idle timeout before saver',
       soundTitle: 'Sound',
@@ -276,12 +278,15 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
       screensaver: 10,
       volume: 60,
       language: 'zh',
-      autoConnect: true,
-      appVersion: '0.1.0',
-      firmwareVersion: '1.2.3',
-      playChime: true,
-    },
+    autoConnect: true,
+    appVersion: '0.1.0',
+    firmwareVersion: '1.2.3',
+    playChime: true,
+  },
   };
+
+  let brightnessApplyTimer = null;
+  const clampBrightness = (val) => Math.max(0, Math.min(100, Math.round(Number(val) || 0)));
 
   function showView(view) {
     const next = ['home', 'quick', 'settings'].includes(view) ? view : 'home';
@@ -550,8 +555,9 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
   function updateSettingsUI() {
     const brightness = document.getElementById('settingsBrightness');
     const brightnessValue = document.getElementById('settingsBrightnessValue');
-    if (brightness) brightness.value = state.settings.brightness;
-    if (brightnessValue) brightnessValue.textContent = `${state.settings.brightness}%`;
+    const brightnessPct = clampBrightness(state.settings.brightness);
+    if (brightness) brightness.value = brightnessPct;
+    if (brightnessValue) brightnessValue.textContent = `${brightnessPct}%`;
 
     const screensaver = document.getElementById('screensaverSelect');
     if (screensaver) screensaver.value = String(state.settings.screensaver);
@@ -577,6 +583,45 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     if (appVersion) appVersion.textContent = state.settings.appVersion;
     const firmware = document.getElementById('settingsFirmwareVersion');
     if (firmware) firmware.textContent = state.settings.firmwareVersion;
+  }
+
+  async function syncSystemBrightness() {
+    if (!api?.getBrightness) return;
+    try {
+      const info = await api.getBrightness();
+      if (info && typeof info.percent === 'number') {
+        state.settings.brightness = clampBrightness(info.percent);
+        updateSettingsUI();
+      }
+    } catch (err) {
+      console.warn('[PPHC] getBrightness failed', err);
+    }
+  }
+
+  async function applyBrightness(percent) {
+    if (!api?.setBrightness) return;
+    try {
+      const result = await api.setBrightness(percent);
+      if (result && typeof result.percent === 'number') {
+        state.settings.brightness = clampBrightness(result.percent);
+        updateSettingsUI();
+      }
+    } catch (err) {
+      console.error('[PPHC] setBrightness failed', err);
+      showAlert(t('brightnessApplyFailed'));
+      syncSystemBrightness();
+    }
+  }
+
+  function requestBrightnessApply(percent) {
+    const target = clampBrightness(percent);
+    state.settings.brightness = target;
+    updateSettingsUI();
+    if (brightnessApplyTimer) clearTimeout(brightnessApplyTimer);
+    brightnessApplyTimer = setTimeout(() => {
+      brightnessApplyTimer = null;
+      applyBrightness(target);
+    }, 120);
   }
 
   function formatMmHg(val) {
@@ -865,10 +910,9 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
   function bindSettingsControls() {
     const brightness = document.getElementById('settingsBrightness');
     if (brightness) {
-      brightness.value = state.settings.brightness;
+      brightness.value = clampBrightness(state.settings.brightness);
       brightness.addEventListener('input', () => {
-        state.settings.brightness = Number(brightness.value || 0);
-        updateSettingsUI();
+        requestBrightnessApply(brightness.value);
       });
     }
 
@@ -1117,6 +1161,7 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     wireIpc();
     updateModeMeta();
     updateSettingsUI();
+    syncSystemBrightness();
     applyLanguage(state.settings.language || 'zh');
     setInterval(updateTelemetry, 200);
     updateHeroClock();

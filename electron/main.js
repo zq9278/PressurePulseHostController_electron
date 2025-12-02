@@ -14,11 +14,52 @@ app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 
 // =======================================================
+const fs = require('fs');
 const path = require('path');
 const { SerialManager } = require('./serial');
 
 let mainWindow;
 const serial = new SerialManager();
+
+const BRIGHTNESS_PATH = '/sys/class/backlight/backlight2/brightness';
+const MAX_BRIGHTNESS_PATH = '/sys/class/backlight/backlight2/max_brightness';
+const DEFAULT_MAX_BRIGHTNESS = 255;
+
+async function readNumber(filePath) {
+  const raw = await fs.promises.readFile(filePath, 'utf8');
+  const num = Number.parseInt(String(raw).trim(), 10);
+  if (Number.isNaN(num)) throw new Error(`Invalid numeric content from ${filePath}`);
+  return num;
+}
+
+async function resolveMaxBrightness() {
+  try {
+    return await readNumber(MAX_BRIGHTNESS_PATH);
+  } catch (err) {
+    console.warn('[PPHC] max brightness fallback ->', DEFAULT_MAX_BRIGHTNESS, err.message);
+    return DEFAULT_MAX_BRIGHTNESS;
+  }
+}
+
+async function getBrightnessPercent() {
+  const max = await resolveMaxBrightness();
+  const raw = await readNumber(BRIGHTNESS_PATH);
+  const percent = Math.round((raw / max) * 100);
+  return {
+    raw,
+    max,
+    percent: Math.max(0, Math.min(100, percent)),
+  };
+}
+
+async function setBrightnessPercent(percent) {
+  const max = await resolveMaxBrightness();
+  const pctRaw = Number(percent);
+  const pct = Number.isFinite(pctRaw) ? Math.max(0, Math.min(100, pctRaw)) : 0;
+  const raw = Math.round((pct / 100) * max);
+  await fs.promises.writeFile(BRIGHTNESS_PATH, String(raw));
+  return { raw, max, percent: pct };
+}
 
 
 // =============================================
@@ -137,3 +178,5 @@ ipcMain.handle('exit-app', async () => {
   else app.quit();
   return true;
 });
+ipcMain.handle('get-brightness', async () => getBrightnessPercent());
+ipcMain.handle('set-brightness', async (e, { percent }) => setBrightnessPercent(percent));
