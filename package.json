@@ -14,7 +14,7 @@
     "pack:linux-arm64": "electron-builder --linux=AppImage --arm64"
   },
   "devDependencies": {
-    "electron": "^31.3.0",
+    "electron": "^31.7.7",
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
@@ -36,7 +36,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
@@ -44,7 +46,9 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         }
       ],
       "category": "Utility",
