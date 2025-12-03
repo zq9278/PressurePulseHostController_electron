@@ -312,10 +312,9 @@ class SerialManager extends EventEmitter {
     this._buffer = buf;
   }
   _emitShieldState() {
-    const leftFuseBlown = this._shield.leftFuse === 0;
-    const rightFuseBlown = this._shield.rightFuse === 0;
-    const left = this._shield.leftPresent && !leftFuseBlown;
-    const right = this._shield.rightPresent && !rightFuseBlown;
+    // 只依据护盾存在判断在线状态，熔断状态仅用于显示
+    const left = !!this._shield.leftPresent;
+    const right = !!this._shield.rightPresent;
     this.emit('shield-state', {
       left,
       right,

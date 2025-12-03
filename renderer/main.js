@@ -37,13 +37,13 @@
       leftEye: '左眼',
       rightEye: '右眼',
       temperature: '温度',
-      shieldPanelTitle: '护盾状态',
-      shieldPresentLabel: '佩戴',
-      shieldFuseLabel: '保险',
+      shieldPanelTitle: '眼盾状态',
+      shieldPresentLabel: '是否在线',
+      shieldFuseLabel: '是否熔断',
       shieldOnline: '在线',
       shieldOffline: '未连接',
-      shieldPresentYes: '佩戴',
-      shieldPresentNo: '未佩戴',
+      shieldPresentYes: '在线',
+      shieldPresentNo: '离线',
       fuseOk: '正常',
       fuseBlown: '熔断',
       controlOverline: '控制参数',
@@ -56,7 +56,7 @@
       stop: '停止',
       running: '运行中',
       standby: '待机',
-      runStateLabel: '????',
+      runStateLabel: '挤压状态',
       alarmLabel: '报警',
       systemStateLabel: '系统状态',
       connectionStateLabel: '连接状态',
@@ -101,13 +101,13 @@
       modeLabelRise: '升压段',
       modeLabelHold: '恒压段',
       modeLabelPulse: '脉冲段',
-      shieldModalTitle: '护盾未就绪',
-      shieldModalText: '请确认左右护盾均已佩戴并与接口接触可靠。',
-      shieldLostTitle: '护盾断开',
-      shieldLostText: '检测到护盾离线，治疗已停止，请检查佩戴情况并重试。',
+      shieldModalTitle: '眼盾未就绪',
+      shieldModalText: '请确认左右眼盾均已佩戴并与接口接触可靠。',
+      shieldLostTitle: '眼盾断开',
+      shieldLostText: '检测到眼盾离线，治疗已停止，请检查佩戴情况并重试。',
       shieldLostBack: '返回',
-      shieldConfirmTitleLeft: '左侧护盾异常',
-      shieldConfirmTitleRight: '右侧护盾异常',
+      shieldConfirmTitleLeft: '左侧眼盾异常',
+      shieldConfirmTitleRight: '右侧眼盾异常',
       shieldConfirmTextLeft: '检测到左侧通路异常，是否只治疗右侧？',
       shieldConfirmTextRight: '检测到右侧通路异常，是否只治疗左侧？',
       confirmCancel: '取消',
@@ -117,7 +117,7 @@
       heartbeatTimeout: '心跳超时，请检查设备连接',
       countdownDone: '治疗完成，已自动停止',
       stoppedByDevice: '设备停止了本次治疗',
-      shieldMissing: '未检测到护盾，无法启动，请佩戴后再试',
+      shieldMissing: '未检测到眼盾，无法启动，请佩戴后再试',
       checkingUpdates: '检查更新中...',
       logsHint: '日志目录打开功能待接入',
     },
@@ -307,12 +307,8 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
 
   function isShieldHealthy(side) {
     const presentRaw = state.shields[side];
-    const fuseRaw = state.shieldDetail[`${side}Fuse`];
     const presentNum = typeof presentRaw === 'string' ? Number(presentRaw) : Number(presentRaw);
-    const fuseNum = typeof fuseRaw === 'string' ? Number(fuseRaw) : Number(fuseRaw);
-    const present = presentRaw === true || presentNum === 1; // 高电平 = 在线
-    const fuseOk = fuseRaw == null || Number.isNaN(fuseNum) ? true : fuseNum === 1; // 0=熔断,1=正常
-    return present && fuseOk;
+    return presentRaw === true || presentNum === 1; // 高电平 = 在线
   }
 
   function setConnected(on) {
@@ -802,12 +798,10 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     Object.entries(map).forEach(([side, refs]) => {
       if (!refs.wrap) return;
       const presentVal = state.shieldDetail[`${side}Present`];
-      const fuseVal = state.shieldDetail[`${side}Fuse`];
       const online = !!state.shields[side];
+      const fuseVal = state.shieldDetail[`${side}Fuse`];
       const fuseNum = typeof fuseVal === 'string' ? Number(fuseVal) : Number(fuseVal);
-      const fuseOk =
-        fuseVal === null || fuseVal === undefined || Number.isNaN(fuseNum) ? true : fuseNum === 1; // 0=熔断,1=正常
-      const healthy = online && fuseOk;
+      const healthy = online; // 熔断不影响在线判断
       refs.wrap.classList.toggle('active', healthy);
       if (refs.state) refs.state.textContent = online ? t('shieldOnline') : t('shieldOffline');
       if (refs.present)
