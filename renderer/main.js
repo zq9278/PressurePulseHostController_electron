@@ -118,9 +118,6 @@
       countdownDone: '治疗完成，已自动停止',
       stoppedByDevice: '设备停止了本次治疗',
       shieldMissing: '未检测到护盾，无法启动，请佩戴后再试',
-      navGuardTitle: '治疗进行中',
-      navGuardText: '当前正在治疗，请先停止治疗。',
-      navGuardClose: '知道了',
       checkingUpdates: '检查更新中...',
       logsHint: '日志目录打开功能待接入',
     },
@@ -227,9 +224,6 @@
       countdownDone: 'Session complete, stopped automatically',
       stoppedByDevice: 'Device stopped the session',
       shieldMissing: 'No shields detected. Please wear shields before starting.',
-      navGuardTitle: 'Treatment Running',
-      navGuardText: 'Treatment is in progress. Please stop before returning to Home.',
-      navGuardClose: 'Got it',
       checkingUpdates: 'Checking updates...',
       logsHint: 'Log opening is not wired yet',
     },
@@ -242,8 +236,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
   const TEMP_FIXED_C = 41.0;
   const AUTO_PORT = '/dev/ttyS1';
   const AUTO_BAUD = 115200;
-  // 调试阶段仅检测护盾存在，不拦截熔断；量产时改为 true。
-  const SHIELD_REQUIRE_FUSE = false;
 
   // 阶段文案：r 上升阶段，h 保持阶段，p 脉冲阶段
   const STAGE_LABELS = {
@@ -313,19 +305,13 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     { key: 3, canvas: () => $('#sparkTempRight'), color: 'rgba(239,68,68,0.9)', visibleMax: 60 },
   ];
 
-  const fuseHealthy = (val) => {
-    if (!SHIELD_REQUIRE_FUSE) return true;
-    const fuseNum = typeof val === 'string' ? Number(val) : Number(val);
-    if (val === null || val === undefined || Number.isNaN(fuseNum)) return true;
-    return fuseNum === 1; // 0=熔断, 1=正常
-  };
-
   function isShieldHealthy(side) {
     const presentRaw = state.shields[side];
     const fuseRaw = state.shieldDetail[`${side}Fuse`];
     const presentNum = typeof presentRaw === 'string' ? Number(presentRaw) : Number(presentRaw);
+    const fuseNum = typeof fuseRaw === 'string' ? Number(fuseRaw) : Number(fuseRaw);
     const present = presentRaw === true || presentNum === 1; // 高电平 = 在线
-    const fuseOk = fuseHealthy(fuseRaw);
+    const fuseOk = fuseRaw == null || Number.isNaN(fuseNum) ? true : fuseNum === 1; // 0=熔断,1=正常
     return present && fuseOk;
   }
 
@@ -557,9 +543,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     const lostText = document.querySelector('#shieldLostModal p');
     if (lostText) lostText.textContent = t('shieldLostText');
     set('#shieldLostBack', 'shieldLostBack');
-    set('#navGuardTitle', 'navGuardTitle');
-    set('#navGuardText', 'navGuardText');
-    set('#navGuardAck', 'navGuardClose');
 
     set('#confirmCancel', 'confirmCancel');
     set('#confirmContinue', 'confirmContinue');
@@ -822,7 +805,8 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
       const fuseVal = state.shieldDetail[`${side}Fuse`];
       const online = !!state.shields[side];
       const fuseNum = typeof fuseVal === 'string' ? Number(fuseVal) : Number(fuseVal);
-      const fuseOk = fuseHealthy(fuseVal);
+      const fuseOk =
+        fuseVal === null || fuseVal === undefined || Number.isNaN(fuseNum) ? true : fuseNum === 1; // 0=熔断,1=正常
       const healthy = online && fuseOk;
       refs.wrap.classList.toggle('active', healthy);
       if (refs.state) refs.state.textContent = online ? t('shieldOnline') : t('shieldOffline');
@@ -994,27 +978,12 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
       'confirmCancel',
       'confirmContinue',
       'shieldLostBack',
-      'navGuardModal',
-      'navGuardAck',
       'btnBackSettings',
     ].forEach((id) => {
       if (!document.getElementById(id)) console.warn('[PPHC] missing element', id);
     });
-    const exitBtn = document.getElementById('btnExit');
-    if (exitBtn) {
-      exitBtn.hidden = false;
-      exitBtn.style.display = 'inline-flex';
-      exitBtn.style.visibility = 'visible';
-    }
     document.getElementById('btnHomeQuick')?.addEventListener('click', () => showView('quick'));
-    document.getElementById('btnBackHome')?.addEventListener('click', () => {
-      if (state.running) {
-        const modal = document.getElementById('navGuardModal');
-        if (modal) modal.hidden = false;
-        return;
-      }
-      showView('home');
-    });
+    document.getElementById('btnBackHome')?.addEventListener('click', () => showView('home'));
     document.getElementById('btnExit')?.addEventListener('click', () => {
       if (api && api.exitApp) api.exitApp();
       else window.close();
@@ -1067,9 +1036,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     document.getElementById('shieldModal')?.addEventListener('click', (e) => {
       if (e.target.id === 'shieldModal') e.currentTarget.hidden = true;
     });
-    document.getElementById('navGuardModal')?.addEventListener('click', (e) => {
-      if (e.target.id === 'navGuardModal') e.currentTarget.hidden = true;
-    });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         const modal = document.getElementById('shieldModal');
@@ -1078,8 +1044,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
         if (confirm && !confirm.hidden) confirm.hidden = true;
         const lost = document.getElementById('shieldLostModal');
         if (lost && !lost.hidden) lost.hidden = true;
-        const navGuard = document.getElementById('navGuardModal');
-        if (navGuard && !navGuard.hidden) navGuard.hidden = true;
         state.pendingSides = null;
       }
     });
@@ -1102,10 +1066,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     });
     document.getElementById('shieldLostBack')?.addEventListener('click', () => {
       clearShieldLostModal();
-    });
-    document.getElementById('navGuardAck')?.addEventListener('click', () => {
-      const modal = document.getElementById('navGuardModal');
-      if (modal) modal.hidden = true;
     });
 
     document.getElementById('btnBackSettings')?.addEventListener('click', () =>
@@ -1203,7 +1163,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     updateSettingsUI();
     syncSystemBrightness();
     applyLanguage(state.settings.language || 'zh');
-    document.body.style.cursor = 'default';
     setInterval(updateTelemetry, 200);
     updateHeroClock();
     setInterval(updateHeroClock, 30000);
