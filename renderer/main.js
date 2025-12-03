@@ -236,8 +236,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
   const TEMP_FIXED_C = 41.0;
   const AUTO_PORT = '/dev/ttyS1';
   const AUTO_BAUD = 115200;
-  // 调试阶段仅检查佩戴存在，不拦截熔断；量产时改为 true。
-  const SHIELD_REQUIRE_FUSE = false;
 
   // 阶段文案：r 上升阶段，h 保持阶段，p 脉冲阶段
   const STAGE_LABELS = {
@@ -307,19 +305,13 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     { key: 3, canvas: () => $('#sparkTempRight'), color: 'rgba(239,68,68,0.9)', visibleMax: 60 },
   ];
 
-  const fuseHealthy = (val) => {
-    if (!SHIELD_REQUIRE_FUSE) return true;
-    const fuseNum = typeof val === 'string' ? Number(val) : Number(val);
-    if (val === null || val === undefined || Number.isNaN(fuseNum)) return true;
-    return fuseNum === 1; // 0=熔断,1=正常
-  };
-
   function isShieldHealthy(side) {
     const presentRaw = state.shields[side];
     const fuseRaw = state.shieldDetail[`${side}Fuse`];
     const presentNum = typeof presentRaw === 'string' ? Number(presentRaw) : Number(presentRaw);
+    const fuseNum = typeof fuseRaw === 'string' ? Number(fuseRaw) : Number(fuseRaw);
     const present = presentRaw === true || presentNum === 1; // 高电平 = 在线
-    const fuseOk = fuseHealthy(fuseRaw);
+    const fuseOk = fuseRaw == null || Number.isNaN(fuseNum) ? true : fuseNum === 1; // 0=熔断,1=正常
     return present && fuseOk;
   }
 
@@ -812,7 +804,9 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
       const presentVal = state.shieldDetail[`${side}Present`];
       const fuseVal = state.shieldDetail[`${side}Fuse`];
       const online = !!state.shields[side];
-      const fuseOk = fuseHealthy(fuseVal);
+      const fuseNum = typeof fuseVal === 'string' ? Number(fuseVal) : Number(fuseVal);
+      const fuseOk =
+        fuseVal === null || fuseVal === undefined || Number.isNaN(fuseNum) ? true : fuseNum === 1; // 0=熔断,1=正常
       const healthy = online && fuseOk;
       refs.wrap.classList.toggle('active', healthy);
       if (refs.state) refs.state.textContent = online ? t('shieldOnline') : t('shieldOffline');
