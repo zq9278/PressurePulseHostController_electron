@@ -8,6 +8,10 @@ const DEBUG_SERIAL = String(process.env.SERIAL_DEBUG || '').toLowerCase();
 // 默认开启打印，设置 SERIAL_DEBUG=0/false 可关闭
 const debugOn = (DEBUG_SERIAL === '1' || DEBUG_SERIAL === 'true');
 const dbg = (...args) => { if (debugOn) console.log('[serial]', ...args); };
+// 调试阶段默认忽略保险丝状态，仅依据佩戴存在；设置 SHIELD_REQUIRE_FUSE=1 重新启用保险丝判断。
+const SHIELD_REQUIRE_FUSE =
+  String(process.env.SHIELD_REQUIRE_FUSE || '').toLowerCase() === '1' ||
+  String(process.env.SHIELD_REQUIRE_FUSE || '').toLowerCase() === 'true';
 const HEADER = Buffer.from([0xAA, 0x55]);
 const TAIL = Buffer.from([0x0D, 0x0A]);
 const TX_GAP_MS = Math.max(0, Number(process.env.SERIAL_TX_GAP_MS || 8)); // ���������͵���ʱ
@@ -314,13 +318,17 @@ class SerialManager extends EventEmitter {
   _emitShieldState() {
     const leftFuseBlown = this._shield.leftFuse === 0;
     const rightFuseBlown = this._shield.rightFuse === 0;
-    const left = this._shield.leftPresent && !leftFuseBlown;
-    const right = this._shield.rightPresent && !rightFuseBlown;
+    const leftPresent = !!this._shield.leftPresent;
+    const rightPresent = !!this._shield.rightPresent;
+    const leftFuseOk = !leftFuseBlown || !SHIELD_REQUIRE_FUSE;
+    const rightFuseOk = !rightFuseBlown || !SHIELD_REQUIRE_FUSE;
+    const left = leftPresent && leftFuseOk;
+    const right = rightPresent && rightFuseOk;
     this.emit('shield-state', {
       left,
       right,
-      leftPresent: !!this._shield.leftPresent,
-      rightPresent: !!this._shield.rightPresent,
+      leftPresent,
+      rightPresent,
       leftFuse: this._shield.leftFuse,
       rightFuse: this._shield.rightFuse,
     });

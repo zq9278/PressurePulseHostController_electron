@@ -72,3 +72,7 @@ If you get `ERR`, check that the service is active, the socket permissions allow
 - Socket missing in app: ensure service is active (`systemctl status device-control`), and the socket path matches `DEVICE_CONTROL_SOCK` (default `/run/device-control/device-control.sock`).
 - Backlight path wrong: set `BACKLIGHT_DIR=/sys/class/backlight/<name>` in the unit env and restart service. Use `ls /sys/class/backlight` to pick the correct entry.
 - Temporary permissive test (not recommended long-term): `sudo chmod 666 /run/device-control/device-control.sock` then retry `socat`; revert to 660 once group access works.
+
+## 调试阶段护盾熔断处理
+- 当前调试版本只判断护盾是否存在，不因保险丝熔断拦截治疗流程。
+- 量产前如需恢复保险丝校验，可在 Electron 进程启动时设置 `SHIELD_REQUIRE_FUSE=1`；同时将 `renderer/main.js` 中的 `SHIELD_REQUIRE_FUSE` 常量改为 `true`。

@@ -22,6 +22,7 @@ body {
   color: var(--fg);
   font-family: 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   letter-spacing: 0.1px;
+  cursor: default;
 }
 
 body { display: flex; align-items: flex-start; justify-content: center; padding: 0; }
@@ -148,8 +149,9 @@ body.view-quick #settingsScreen { display: none; }
 .home-button.ghost { color: var(--muted); border-style: dashed; }
 
 .quick-container { display: flex; flex-direction: column; gap: 32px; }
-.window-controls { position: absolute; top: 32px; right: 40px; z-index: 20; }
-.window-controls .ghost { padding: 10px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); background: rgba(0,0,0,0.25); font-size: 16px; }
+.window-controls { position: absolute; top: 32px; right: 40px; z-index: 20; display: flex; gap: 12px; align-items: center; }
+.window-controls .ghost { padding: 12px 20px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.35); background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.08)); font-size: 16px; box-shadow: 0 14px 34px rgba(0,0,0,0.4); backdrop-filter: blur(8px); color: var(--fg); }
+.window-controls .ghost:hover { border-color: rgba(255,255,255,0.55); transform: translateY(-1px); }
 .top-bar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
 .icon-back { width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.25); color: var(--fg); font-size: 24px; cursor: pointer; display: grid; place-items: center; }
 .icon-back span { pointer-events: none; }
