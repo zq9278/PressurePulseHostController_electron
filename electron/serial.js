@@ -259,6 +259,7 @@ class SerialManager extends EventEmitter {
           this.emit('serial-data', 3, Number(valC));
           handled = true;
         } else if (frameId === proto.U8_HEARTBEAT_ACK && dataType === proto.DATA_UINT8_T && dataLen >= 1) {
+          //console.log('[serial] heartbeat ack', payload[0]);
           this.emit('heartbeat-ack', payload[0]);
           handled = true;
         } else if (frameId === proto.U8_SYSTEM_STATE && dataType === proto.DATA_UINT8_T && dataLen >= 1) {

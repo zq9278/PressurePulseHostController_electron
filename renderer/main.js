@@ -233,7 +233,7 @@ let currentLang = 'zh';
 const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
 
   const MODE = { target: 20, t1: 25, t2: 35, t3: 50 };
-  const TEMP_FIXED_C = 41.0;
+  const TEMP_FIXED_C = 42.0;
   const AUTO_PORT = '/dev/ttyS1';
   const AUTO_BAUD = 115200;
 
@@ -278,11 +278,15 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
       screensaver: 10,
       volume: 60,
       language: 'zh',
-    autoConnect: true,
-    appVersion: '0.1.0',
-    firmwareVersion: '1.2.3',
-    playChime: true,
-  },
+      autoConnect: true,
+      appVersion: '0.1.0',
+      firmwareVersion: '1.2.3',
+      playChime: true,
+    },
+    targets: {
+      pressure: null,
+      temp: TEMP_FIXED_C,
+    },
   };
 
   let brightnessApplyTimer = null;
@@ -298,11 +302,48 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     console.info('[PPHC] view ->', next);
   }
 
+  const getPressureTarget = () => {
+    const sliderVal = Number(document.getElementById('pressMmHg')?.value || 0);
+    if (state.running && Number.isFinite(state.targets.pressure)) return state.targets.pressure;
+    return sliderVal;
+  };
+
+  const getTempTarget = () => {
+    if (Number.isFinite(state.targets.temp)) return state.targets.temp;
+    return TEMP_FIXED_C;
+  };
+
   const sparkTargets = [
-    { key: 0, canvas: () => $('#sparkPressureLeft'), color: 'rgba(53,209,192,0.9)', yMin: 0, yMax: 700 },
-    { key: 2, canvas: () => $('#sparkPressureRight'), color: 'rgba(245,165,36,0.9)', yMin: 0, yMax: 700 },
-    { key: 1, canvas: () => $('#sparkTempLeft'), color: 'rgba(59,130,246,0.9)', visibleMax: 60 },
-    { key: 3, canvas: () => $('#sparkTempRight'), color: 'rgba(239,68,68,0.9)', visibleMax: 60 },
+    {
+      key: 0,
+      canvas: () => $('#sparkPressureLeft'),
+      color: 'rgba(53,209,192,0.9)',
+      yMin: 0,
+      yMax: 700,
+      target: () => getPressureTarget(),
+    },
+    {
+      key: 2,
+      canvas: () => $('#sparkPressureRight'),
+      color: 'rgba(245,165,36,0.9)',
+      yMin: 0,
+      yMax: 700,
+      target: () => getPressureTarget(),
+    },
+    {
+      key: 1,
+      canvas: () => $('#sparkTempLeft'),
+      color: 'rgba(59,130,246,0.9)',
+      visibleMax: 60,
+      target: () => getTempTarget(),
+    },
+    {
+      key: 3,
+      canvas: () => $('#sparkTempRight'),
+      color: 'rgba(239,68,68,0.9)',
+      visibleMax: 60,
+      target: () => getTempTarget(),
+    },
   ];
 
   function isShieldHealthy(side) {
@@ -383,7 +424,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     if (label) label.textContent = age != null ? `${age} ms` : '-- ms';
     if (age != null && age > 3000 && state.connected) {
       showAlert(t('heartbeatTimeout'));
-      showView('settings');
     }
   }
 
@@ -559,6 +599,7 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     if (screensaver) screensaver.value = String(state.settings.screensaver);
     const saverChip = document.getElementById('screensaverValue');
     if (saverChip) saverChip.textContent = `${state.settings.screensaver} min`;
+    updateCustomSelectDisplay(screensaver);
 
     const volume = document.getElementById('settingsVolume');
     const volumeValue = document.getElementById('settingsVolumeValue');
@@ -592,6 +633,70 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     } catch (err) {
       console.warn('[PPHC] getBrightness failed', err);
     }
+  }
+
+  function updateCustomSelectDisplay(selectEl) {
+    if (!selectEl || !selectEl._custom) return;
+    const { wrapper, labelNode, items } = selectEl._custom;
+    if (labelNode) {
+      const selected = selectEl.options[selectEl.selectedIndex];
+      labelNode.textContent = selected ? selected.textContent : '';
+    }
+    if (Array.isArray(items)) {
+      items.forEach((item) => {
+        item.classList.toggle('active', item.dataset.value === selectEl.value);
+      });
+    }
+    if (wrapper) wrapper.classList.remove('open');
+  }
+
+  function attachCustomSelect(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select || select._custom) return;
+    select.classList.add('native-select-hidden');
+    const wrapper = document.createElement('div');
+    wrapper.className = 'custom-select';
+    wrapper.dataset.for = selectId;
+
+    const display = document.createElement('button');
+    display.type = 'button';
+    display.className = 'custom-select-display';
+    display.innerHTML = `<span class="label"></span><span class="chevron">⌄</span>`;
+
+    const menu = document.createElement('div');
+    menu.className = 'custom-select-menu';
+    const items = [];
+    Array.from(select.options).forEach((opt) => {
+      const item = document.createElement('div');
+      item.className = 'custom-select-item';
+      item.dataset.value = opt.value;
+      item.innerHTML = `<span>${opt.textContent}</span>`;
+      item.addEventListener('click', () => {
+        select.value = opt.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        updateCustomSelectDisplay(select);
+      });
+      menu.appendChild(item);
+      items.push(item);
+    });
+
+    wrapper.appendChild(display);
+    wrapper.appendChild(menu);
+    select.insertAdjacentElement('afterend', wrapper);
+
+    const toggle = () => {
+      wrapper.classList.toggle('open');
+    };
+    display.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggle();
+    });
+    document.addEventListener('click', (e) => {
+      if (!wrapper.contains(e.target)) wrapper.classList.remove('open');
+    });
+
+    select._custom = { wrapper, labelNode: display.querySelector('.label'), items };
+    updateCustomSelectDisplay(select);
   }
 
   async function applyBrightness(percent) {
@@ -674,15 +779,19 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
   }
 
   function drawSparkline(canvas, data, color, cfg = {}) {
-    const { visibleMax, yMin, yMax } = cfg || {};
+    const { visibleMax, yMin, yMax, target } = cfg || {};
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+    const targetRaw = typeof target === 'function' ? target() : target;
+    const targetVal = Number.isFinite(targetRaw) ? Number(targetRaw) : null;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!data || !data.length) return;
-    const samples = data.slice(-canvas.width);
-    let minVal = typeof yMin === 'number' ? yMin : Math.min(...samples);
-    let maxVal = typeof yMax === 'number' ? yMax : Math.max(...samples);
+    const samples = Array.isArray(data) ? data.slice(-canvas.width) : [];
+    if (!samples.length && targetVal == null) return;
+    const vals = samples.slice();
+    if (targetVal != null) vals.push(targetVal);
+    let minVal = typeof yMin === 'number' ? yMin : vals.length ? Math.min(...vals) : 0;
+    let maxVal = typeof yMax === 'number' ? yMax : vals.length ? Math.max(...vals) : 1;
     if (typeof visibleMax === 'number') {
       const span = Math.max(visibleMax, maxVal - minVal);
       const center = (maxVal + minVal) / 2;
@@ -697,16 +806,31 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     minVal -= padding;
     maxVal += padding;
     const range = maxVal - minVal || 1;
-    ctx.beginPath();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    samples.forEach((val, idx) => {
-      const x = (idx / (samples.length - 1 || 1)) * canvas.width;
-      const y = canvas.height * (1 - (val - minVal) / range);
-      if (idx === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
+    const yFor = (v) => canvas.height * (1 - (v - minVal) / range);
+    if (samples.length) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      samples.forEach((val, idx) => {
+        const x = (idx / (samples.length - 1 || 1)) * canvas.width;
+        const y = yFor(val);
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    if (targetVal != null) {
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1;
+      const ty = yFor(targetVal);
+      ctx.beginPath();
+      ctx.moveTo(0, ty);
+      ctx.lineTo(canvas.width, ty);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   function updateTelemetry() {
@@ -770,7 +894,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
         state.countdownTimer = null;
       }
       updateRunState();
-      showView('settings');
     }
   }
 
@@ -829,9 +952,10 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     const text = document.getElementById('shieldConfirmText');
 
     if (title && text) {
-      const leftSide = sides.includes('left');
-      title.textContent = leftSide ? t('shieldConfirmTitleLeft') : t('shieldConfirmTitleRight');
-      text.textContent = leftSide ? t('shieldConfirmTextLeft') : t('shieldConfirmTextRight');
+      // Show the side that is offline/abnormal, not the one still available to treat
+      const missingLeft = !sides.includes('left');
+      title.textContent = missingLeft ? t('shieldConfirmTitleLeft') : t('shieldConfirmTitleRight');
+      text.textContent = missingLeft ? t('shieldConfirmTextLeft') : t('shieldConfirmTextRight');
     }
 
     if (modal) modal.hidden = false;
@@ -849,6 +973,8 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     api.sendU8(0x1005, enableRight ? 1 : 0);
     api.sendF32(0x1002, TEMP_FIXED_C);
     const mmHg = Number(document.getElementById('pressMmHg')?.value ?? 0);
+    state.targets.pressure = mmHg;
+    state.targets.temp = TEMP_FIXED_C;
     api.sendF32(0x1001, mmHg); // 发送原始 mmHg
     api.sendU8(0x10c0, state.mode || 1);
     const min = Math.max(
@@ -911,6 +1037,7 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     }
 
     const screensaver = document.getElementById('screensaverSelect');
+    attachCustomSelect('screensaverSelect');
     if (screensaver) {
       screensaver.value = String(state.settings.screensaver);
       screensaver.addEventListener('change', () => {
@@ -1009,6 +1136,7 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
         const val = Number(pressureSlider.value).toFixed(0);
         const chip = document.getElementById('pressMmHgValue');
         if (chip) chip.textContent = `${val} mmHg`;
+        if (!state.running) state.targets.pressure = Number(val);
       });
 
     const durationSlider = document.getElementById('treatDuration');
@@ -1119,7 +1247,6 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
         state.running = false;
         updateRunState();
         showAlert(t('stoppedByDevice'));
-        showView('settings');
       });
     }
     if (api.onShieldState) {
