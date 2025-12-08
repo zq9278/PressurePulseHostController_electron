@@ -20,27 +20,41 @@ html, body { height: 100%; overflow: hidden; cursor: none; }
 * { cursor: none !important; }
 body {
   margin: 0;
-  background: #04142f;
+  background: var(--bg-hero);
   color: var(--fg);
   font-family: 'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   letter-spacing: 0.1px;
+  display: block;
+  padding: 0;
 }
-
-body { display: flex; align-items: flex-start; justify-content: center; padding: 0; }
 .bg-board {
   position: fixed;
-  width: 2560px;
-  height: 1600px;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   background: var(--bg-hero);
   background-size: cover;
   background-position: center;
   border-radius: 0;
   z-index: 0;
+  pointer-events: none;
 }
-.app-shell { position: absolute; z-index: 1; width: 2560px; height: 1600px; border-radius: 0; overflow: hidden; box-shadow: none; background: transparent; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.bg-board::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6,14,28,0.35) 0%, rgba(6,18,44,0.2) 45%, rgba(6,32,70,0.15) 65%, rgba(0,48,110,0.3) 100%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.bg-board::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(8,42,105,0.18) 50%, rgba(6,52,130,0.3) 66%, rgba(0,70,170,0.58) 100%);
+  pointer-events: none;
+}
+.app-shell { position: fixed; z-index: 1; inset: 0; width: 100vw; height: 100vh; border-radius: 0; overflow: hidden; box-shadow: none; background: transparent; }
 .screen { position: absolute; inset: 0; padding: 0; display: none; background: transparent; overflow: hidden; }
 .app-shell[data-view="home"] #homeScreen,
 .app-shell[data-view="quick"] #quickScreen,
@@ -71,7 +85,7 @@ body.view-quick #settingsScreen { display: none; }
 .hero-clock { font-size: 24px; letter-spacing: 6px; text-transform: uppercase; color: rgba(255,255,255,0.6); }
 .hero-nameplate { display: flex; align-items: center; justify-content: space-between; gap: 32px; }
 .hero-logo { display: flex; align-items: center; gap: 18px; color: #f8fbff; }
-.hero-logo svg { width: 180px; height: auto; }
+.hero-logo img { width: 220px; height: auto; display: block; }
 .hero-logo-text { display: flex; flex-direction: column; gap: 4px; }
 .hero-logo-text strong { font-size: 28px; letter-spacing: 6px; }
 .hero-logo-text span { font-size: 14px; letter-spacing: 6px; color: rgba(255,255,255,0.7); }
@@ -79,7 +93,7 @@ body.view-quick #settingsScreen { display: none; }
 .hero-text h1 { margin: 0; font-size: 90px; font-weight: 800; letter-spacing: 3px; }
 .hero-text .hero-subtitle { margin: 0; font-size: 32px; text-transform: uppercase; letter-spacing: 4px; color: rgba(255,255,255,0.8); }
 .hero-desc { font-size: 22px; line-height: 1.6; max-width: 840px; margin: 0; color: rgba(255,255,255,0.78); }
-.hero-actions-home { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 10px; }
+.hero-actions-home { display: flex; gap: 24px; flex-wrap: nowrap; justify-content: center; margin-top: 10px; }
 .hero-btn { border-radius: 28px; padding: 20px 34px; min-width: 220px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.05); color: var(--fg); font-size: 22px; letter-spacing: 2px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 18px 45px rgba(0,0,0,0.35); transition: transform 0.2s, box-shadow 0.2s, background 0.2s; }
 .hero-btn .label { font-weight: 700; }
 .hero-btn small { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.7); }
@@ -87,13 +101,14 @@ body.view-quick #settingsScreen { display: none; }
 .hero-btn.primary { background: linear-gradient(120deg, #5df6ff, #2c6dff); color: #041024; border-color: transparent; }
 .hero-btn.primary small { color: rgba(4,16,36,0.65); }
 .hero-btn.primary:hover { box-shadow: 0 30px 60px rgba(45,125,255,0.45); transform: translateY(-4px); }
+.hero-actions-home .hero-btn { font-size: 28px; padding: 28px 52px; min-width: 320px; }
+.hero-actions-home .hero-btn .label { font-size: 28px; }
+.hero-actions-home .hero-btn small { font-size: 16px; }
 .hero-eye-texture { position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 50%; background: radial-gradient(circle, rgba(90,160,255,0.65), rgba(20,32,58,0.8)); overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.45); }
 .hero-eye-core { position: absolute; inset: 18%; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); box-shadow: inset 0 0 40px rgba(0,0,0,0.6); }
 .hero-eye-ring { position: absolute; border-radius: 50%; border: 1px dashed rgba(255,255,255,0.5); animation: slow-rotate 16s linear infinite; }
 .hero-eye-ring-outer { inset: 6%; }
 .hero-eye-ring-inner { inset: 24%; animation-duration: 28s; }
-.hero-eye-scan { position: absolute; inset: 0; background: linear-gradient(120deg, transparent 20%, rgba(255,255,255,0.25) 40%, transparent 60%); animation: scan 4s linear infinite; mix-blend-mode: screen; }
-@keyframes scan { from { transform: translateX(-30%); } to { transform: translateX(30%); } }
 @keyframes slow-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .quick-screen { background: inherit; display: flex; align-items: stretch; justify-content: center; }
 .quick-container { padding: 60px 80px; width: 100%; max-width: none; margin: 0 auto; }
@@ -243,7 +258,7 @@ body.view-quick #settingsScreen { display: none; }
 .quick-container { display: flex; flex-direction: column; gap: 32px; }
 .window-controls { position: absolute; top: 32px; right: 40px; z-index: 20; }
 .window-controls .ghost { padding: 10px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); background: rgba(0,0,0,0.25); font-size: 16px; }
-.top-bar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.top-bar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; padding-bottom: 20px; border-bottom: none; }
 .icon-back { width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.25); color: var(--fg); font-size: 24px; cursor: pointer; display: grid; place-items: center; }
 .icon-back span { pointer-events: none; }
 .section-title { font-size: 42px; font-weight: 700; text-align: center; }

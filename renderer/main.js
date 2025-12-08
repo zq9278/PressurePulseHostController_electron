@@ -21,7 +21,7 @@
       homeTitle: '眼部热脉冲治疗系统',
       homeSubtitle: 'Thermal Pulsation System',
       homeDesc: '以加热与压力脉冲的双重协作实现治疗，支持快速、精准、稳定的疗程控制。',
-      btnDeviceLabel: '设备设置',
+      btnDeviceLabel: '设置',
       btnDeviceSub: 'Device Settings',
       btnQuickLabel: '开始治疗',
       btnQuickSub: 'Start Session',
