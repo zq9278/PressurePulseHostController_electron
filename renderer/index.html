@@ -9,6 +9,47 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body class="view-home">
+    <script>
+      (function() {
+        const params = new URLSearchParams(window.location.search || '');
+        let debugWeb = params.has('debugWeb');
+        const debugMouse = params.has('debugMouse') || debugWeb || location.protocol.startsWith('http');
+        if (!window.api) {
+          debugWeb = true; // fallback to stub when no electron preload
+        }
+        window.__PPHC_WEBDEBUG__ = debugWeb;
+        if (debugWeb) {
+          document.documentElement.classList.add('debug-web');
+        }
+        if (debugMouse) {
+          document.documentElement.classList.add('debug-mouse');
+        }
+        if (!window.api) {
+          const noop = () => {};
+          window.api = {
+            listPorts: async () => [],
+            connect: async () => false,
+            disconnect: async () => {},
+            sendU8: noop,
+            sendF32: noop,
+            sendU16: noop,
+            sendU32: noop,
+            sendText: noop,
+            exitApp: noop,
+            getBrightness: async () => ({ percent: 80, raw: 0, max: 255 }),
+            setBrightness: async () => ({ percent: 80, raw: 0, max: 255 }),
+            onSerialData: () => {},
+            onConnectionChanged: () => {},
+            onHeartbeatAck: () => {},
+            onSystemState: () => {},
+            onAlarmState: () => {},
+            onModeCurves: () => {},
+            onStopTreatment: () => {},
+            onShieldState: () => {},
+          };
+        }
+      })();
+    </script>
     <div class="bg-board"></div>
     <div class="app-shell" data-view="home">
       <div class="window-controls">
@@ -257,10 +298,6 @@
                     <div class="label">连接状态</div>
                     <div id="connectionState" class="value-chip muted">未连接</div>
                   </div>
-                  <div>
-                    <div class="label">最后心跳</div>
-                    <div id="heartbeatAge" class="value-chip muted">-- ms</div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -290,7 +327,7 @@
             <div class="settings-main">
               <div class="settings-card headered">
                 <h3>显示</h3>
-                <p>模仿 macOS 样式的柔和背光与模糊效果。</p>
+                <p class="display-desc">模仿 macOS 样式的柔和背光与模糊效果。</p>
                 <div class="setting-row">
                   <div class="meta">
                     <strong>屏幕亮度</strong>

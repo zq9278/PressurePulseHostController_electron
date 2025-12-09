@@ -5,6 +5,7 @@
   const $ = (q) => document.querySelector(q);
   const $$ = (q) => Array.from(document.querySelectorAll(q));
   const api = window.api;
+  const WEB_DEBUG = !!window.__PPHC_WEBDEBUG__;
 
   // Basic error logging so UI issues are visible in DevTools console
   window.addEventListener('error', (e) => {
@@ -18,13 +19,13 @@
     zh: {
       appTitle: '眼部热脉冲控制',
       exit: '退出程序',
-      homeTitle: '眼部热脉冲治疗系统',
+      homeTitle: '睑板腺热脉动治疗仪',
       homeSubtitle: 'Thermal Pulsation System',
-      homeDesc: '以加热与压力脉冲的双重协作实现治疗，支持快速、精准、稳定的疗程控制。',
+      homeDesc: '',
       btnDeviceLabel: '设置',
-      btnDeviceSub: 'Device Settings',
+      btnDeviceSub: 'Settings',
       btnQuickLabel: '开始治疗',
-      btnQuickSub: 'Start Session',
+      btnQuickSub: 'Start',
       quickTitle: '快速治疗',
       summaryOverline: '实时数据',
       summaryTitle: '压力 / 温度',
@@ -126,7 +127,7 @@
       exit: 'Exit',
       homeTitle: 'Thermal Pulsation System',
       homeSubtitle: 'Thermal Pulsation System',
-      homeDesc: 'Heat and pressure pulses working together for a fast, precise, and safe treatment experience.',
+      homeDesc: '',
       btnDeviceLabel: 'Device Settings',
       btnDeviceSub: 'Hardware & Preferences',
       btnQuickLabel: 'Start Treatment',
@@ -236,6 +237,9 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
   const TEMP_FIXED_C = 42.0;
   const AUTO_PORT = '/dev/ttyS1';
   const AUTO_BAUD = 115200;
+  if (WEB_DEBUG) {
+    console.log('[PPHC] web debug mode enabled - serial and device calls are stubbed');
+  }
 
   // 阶段文案：r 上升阶段，h 保持阶段，p 脉冲阶段
   const STAGE_LABELS = {
@@ -402,6 +406,7 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
   }
 
   async function attemptAutoConnect() {
+    if (WEB_DEBUG) return;
     if (state.connected || state.connecting || !api?.connect) return;
     state.connecting = true;
     try {
@@ -457,7 +462,11 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     set('#btnExit', 'exit');
     set('#homeScreen h1', 'homeTitle');
     set('#homeScreen .hero-subtitle', 'homeSubtitle');
-    set('#homeScreen .hero-desc', 'homeDesc');
+    const heroDesc = document.querySelector('#homeScreen .hero-desc');
+    if (heroDesc) {
+      if (!heroDesc.dataset.defaultDesc) heroDesc.dataset.defaultDesc = heroDesc.textContent || '';
+      heroDesc.textContent = (TRANSLATIONS[next] && TRANSLATIONS[next].homeDesc) || heroDesc.dataset.defaultDesc || '';
+    }
     set('#btnHomeDevice .label', 'btnDeviceLabel');
     set('#btnHomeDevice small', 'btnDeviceSub');
     set('#btnHomeQuick .label', 'btnQuickLabel');
@@ -507,11 +516,10 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
     set('.slider-card[data-kind=\"duration\"] strong', 'durationStrong');
 
     const infoLabels = $$('.info-panel .label');
-        if (infoLabels[0]) infoLabels[0].textContent = t('runStateLabel');
+    if (infoLabels[0]) infoLabels[0].textContent = t('runStateLabel');
     if (infoLabels[1]) infoLabels[1].textContent = t('alarmLabel');
     if (infoLabels[2]) infoLabels[2].textContent = t('systemStateLabel');
     if (infoLabels[3]) infoLabels[3].textContent = t('connectionStateLabel');
-    if (infoLabels[4]) infoLabels[4].textContent = t('heartbeatLabel');
     const connectionNode = $('#connectionState');
     if (connectionNode) connectionNode.textContent = state.connected ? t('connected') : t('disconnected');
 
@@ -889,11 +897,14 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
       // 自动停止
       api.sendU8(0x10c2, 1);
       state.running = false;
+      state.activeSides = [];
+      state.shieldDropShown = false;
       if (state.countdownTimer) {
         clearInterval(state.countdownTimer);
         state.countdownTimer = null;
       }
       updateRunState();
+      showAlert(t('countdownDone'));
     }
   }
 
@@ -1125,6 +1136,7 @@ const t = (key) => (TRANSLATIONS?.[currentLang] || TRANSLATIONS.zh)[key] || key;
           state.countdownTimer = null;
         }
         updateRunState();
+        showAlert('治疗已停止');
       } else {
         handleStartClick();
       }

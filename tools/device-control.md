@@ -67,6 +67,16 @@ echo "volume 20" | socat - UNIX-CONNECT:/run/device-control/device-control.sock
 
 If you get `ERR`, check that the service is active, the socket permissions allow your user, and the backlight path matches your hardware (`ls /sys/class/backlight`).
 
+## Web debug / LAN preview usage
+- 运行 Electron 调试（带串口 stub，自动显示鼠标）：  
+  `PPHC_DEBUG_WEB=1 npm start` （或你的启动命令）。此时会自动带 `?debugWeb=1`，串口调用被跳过，鼠标可见。
+- 仅预览 UI（纯前端，无串口）：  
+  ```bash
+  cd renderer
+  python3 -m http.server 3000 --bind 0.0.0.0
+  ```  
+  然后用浏览器访问 `http://192.168.1.46:3000/index.html?debugWeb=1`。同样会使用 stub API、显示鼠标。
+
 ## Troubleshooting
 - Permission denied on socket: confirm your user is in `device-control` (`id` shows the group). If not, `sudo usermod -aG device-control <user>` then log out/in (or `newgrp device-control`) and `sudo systemctl restart device-control`. Socket/dir should be `drwxrwx--- root:device-control /run/device-control` and `srw-rw---- root:device-control /run/device-control/device-control.sock`.
 - Socket missing in app: ensure service is active (`systemctl status device-control`), and the socket path matches `DEVICE_CONTROL_SOCK` (default `/run/device-control/device-control.sock`).

@@ -92,7 +92,10 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  const query = {};
+  if (process.env.PPHC_DEBUG_WEB) query.debugWeb = '1';
+  if (process.env.PPHC_DEBUG_MOUSE) query.debugMouse = '1';
+  mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), { query });
 
   mainWindow.webContents.once('did-finish-load', () => {
     broadcastPorts();
