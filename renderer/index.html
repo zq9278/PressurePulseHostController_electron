@@ -104,7 +104,7 @@
         <div class="quick-container">
           <header class="top-bar">
             <button id="btnBackHome" class="icon-back" aria-label="返回主界面"><span>←</span></button>
-            <div class="section-title">快速治疗</div>
+            <div class="section-title"></div>
             <div class="top-placeholder"></div>
           </header>
 
@@ -234,16 +234,14 @@
                 <div class="panel-headline">
                   <div>
                     <div class="panel-overline">治疗参数</div>
-                    <div class="panel-title">快速调节</div>
+                    <div class="panel-title"></div>
                   </div>
-                  <div class="panel-note">连接设备后可启动</div>
                 </div>
-                <div class="control-stack">
-                  <div class="slider-card" data-kind="pressure">
+              <div class="control-stack">
+                <div class="slider-card" data-kind="pressure">
                     <div class="slider-head">
                       <div>
                         <div class="eyebrow">治疗压力</div>
-                        <strong>目标值 (mmHg)</strong>
                       </div>
                       <div class="slider-value" id="pressMmHgValue">250 mmHg</div>
                     </div>
@@ -258,7 +256,6 @@
                     <div class="slider-head">
                       <div>
                         <div class="eyebrow">治疗时长</div>
-                        <strong>以分钟为单位</strong>
                       </div>
                       <div class="duration-values">
                         <span class="target-duration" id="durationValue">10 min</span>
@@ -324,25 +321,22 @@
               </div>
             </aside>
 
-            <div class="settings-main">
-              <div class="settings-card headered">
-                <h3>显示</h3>
-                <p class="display-desc">模仿 macOS 样式的柔和背光与模糊效果。</p>
-                <div class="setting-row">
-                  <div class="meta">
-                    <strong>屏幕亮度</strong>
-                    <span>调整 UI 辉度</span>
+              <div class="settings-main">
+                <div class="settings-card headered">
+                  <h3>显示</h3>
+                  <div class="setting-row">
+                    <div class="meta">
+                      <strong>屏幕亮度</strong>
+                    </div>
+                    <div class="pill"><span>当前</span><strong id="settingsBrightnessValue">80%</strong></div>
                   </div>
-                  <div class="pill"><span>当前</span><strong id="settingsBrightnessValue">80%</strong></div>
-                </div>
                 <input type="range" class="mac-slider" id="settingsBrightness" min="0" max="100" step="1" />
-                <div class="setting-row">
-                  <div class="meta">
-                    <strong>屏保等待</strong>
-                    <span>自动进入屏保的倒计时</span>
+                  <div class="setting-row">
+                    <div class="meta">
+                      <strong>屏保等待</strong>
+                    </div>
+                    <div class="pill"><span>倒计时</span><strong id="screensaverValue">10 min</strong></div>
                   </div>
-                  <div class="pill"><span>倒计时</span><strong id="screensaverValue">10 min</strong></div>
-                </div>
                 <select id="screensaverSelect">
                   <option value="5">5 分钟</option>
                   <option value="10">10 分钟</option>
@@ -358,7 +352,6 @@
                   <div class="setting-row">
                     <div class="meta">
                       <strong>系统音量</strong>
-                      <span>播放提示与反馈</span>
                     </div>
                     <div class="pill"><span>当前</span><strong id="settingsVolumeValue">60%</strong></div>
                   </div>
@@ -377,11 +370,9 @@
 
                 <div class="settings-card">
                   <h3>语言</h3>
-                  <p>中英文切换，实时调整界面文案。</p>
                   <div class="setting-row">
                     <div class="meta">
                       <strong>界面语言</strong>
-                      <span>偏好选择</span>
                     </div>
                     <div class="pill"><span>当前</span><strong id="languageValue">中文</strong></div>
                   </div>
@@ -409,7 +400,7 @@
                       <div class="value" id="settingsFirmwareVersion">--</div>
                     </div>
                   </div>
-                  <div class="settings-actions">
+                  <div class="settings-actions" hidden>
                     <button id="btnCheckUpdates" class="ghost-btn">检查更新</button>
                     <button id="btnOpenLogs" class="ghost-btn">打开日志</button>
                   </div>
